@@ -1,0 +1,131 @@
+---
+title: "Week 2: Interpreting Model Outputs"
+author: 
+  - "DS303, SP26"
+  - "Prof. Amber Camp"
+date: 1/21/26
+format: html
+editor: visual
+theme: spacelab
+---
+
+## Interpreting Model Outputs
+
+### Load packages and read in data
+
+```{r}
+# install.packages("ISLR2") # can also use MASS
+library(ISLR2)
+library(tidyverse)
+library(lme4)
+
+data(Boston)
+
+```
+
+### Create a scatterplot
+
+Create a scatterplot of median home value (`medv`) vs. percentage of lower status residents (`lstat`) in the `Boston` data
+
+```{r}
+
+```
+
+### Run a linear model using `lm`
+
+Create a linear model that predicts the median value of homes (`medv`) based on the percentage of lower status residents (`lstat`) using data from `Boston`
+
+```{r}
+
+```
+
+## Interpreting model output
+
+Some things to look at:
+
+-   **Residuals**: the differences between the observed values and the values predicted by the model
+
+-   **Coefficients**: the parameters that represent the relationship between predictor variables and the response variable, indicating how much the response changes for a one-unit change in the predictor
+
+-   **Model Fit (R-squared)**: a stat that indicates the proportion of variance in the response variable explained by the predictor variables; ranges from 0 to 1
+
+-   **F-statistic**: a value that assesses the overall significance of the model; it compares the model with the predictors to a model with no predictors
+
+-   **p-value**: the probability of observing the data, or something more extreme, assuming that the null hypothesis is true; a low *p*-value (typically \< 0.05) indicates statistical significance. **In plain language: how likely it is that the pattern we see could have happened only by chance**
+
+## Interpret the model from above:
+
+**Residuals**: The differences between the predicted and actual values range from -15.168 to 24.500, with a median of -1.318. This indicates that the predictions sometimes overestimate and sometimes underestimate the actual values.
+
+**Coefficients**:
+
+-   The intercept (34.55) suggests that when `lstat` is zero, the median home value is approximately 34.55.
+
+-   The coefficient for `lstat` (-0.95) means that for every one-unit increase in `lstat`, the median home value **decreases** by about 0.95 units. This is highly statistically significant (*p* \< 2e-16).
+
+**Model Fit**: The model has an R-squared value of 0.5441, meaning that about 54.41% of the variability in median home value can be explained by `lstat`. The adjusted R-squared is slightly lower (0.5432), which adjusts for the number of predictors. (We'll come back to this another class)
+
+**Statistical Significance**: The F-statistic (601.6) and its associated *p*-value (less than 2.2e-16) indicate that the model is statistically significant overall.
+
+## Wrapping up Simple Linear Regression
+
+-   Analyzes the relationship between one independent variable (predictor) and one dependent variable (response)
+
+-   Generally expressed as ***y*** **= *b~0~* + *b~1~x***, where *b~0~* is the intercept and *b~1~* is the coefficient for the independent variable *x*
+
+-   Best for situations where the relationship between two variables is being examined
+
+    What about when you have more than two variables?
+
+## Introducing Multiple Linear Regression
+
+-   Analyzes the relationship between two or more independent variables and one dependent variable
+
+-   Expressed as ***y*** **= *b~0~* + *b~1~x~1~* + *b~2~x~2~* + … *b~n~x~n~***
+
+-   Useful for modeling complex situations where multiple factors influence the response variable
+
+-   **Multicollinearity**: predictor variables can be correlated with each other (potentially complicating the model)
+
+### Try it!
+
+Create a linear model to predict the median value of homes (`medv`) based on both the percentage of lower status residents (`lstat`) and the age of the homes (`age`) using data from `Boston`:
+
+```{r}
+
+```
+
+**Residuals**: The differences between the predicted and actual values range from -15.981 to 23.158, with a median of -1.283. This shows how far off the predictions can be from the actual values.
+
+**Coefficients**:
+
+-   The intercept is 33.22, suggesting that when both `lstat` and `age` are zero, the median home value is approximately 33.22.
+
+-   The coefficient for `lstat` is -1.03, indicating that for each one-unit increase in `lstat`, the median home value decreases by about 1.03 units.
+
+-   The coefficient for `age` is 0.0345, meaning that for each additional year of a home's age, the median home value increases by about 0.0345 units. Both `lstat` and `age` coefficients are statistically significant (*p* \< 0.001 for `lstat` and *p* = 0.00491 for `age`).
+
+**Model Fit**: The model explains about 55.13% of the variability in median home value (R-squared = 0.5513). The adjusted R-squared is slightly lower (0.5495), which accounts for the number of predictors used.
+
+**Statistical Significance**: The F-statistic (309) and its associated *p*-value (less than 2.2e-16) indicate that the overall model is statistically significant.
+
+#### Shorthand Trick
+
+The shorthand if you want to look at ALL variables is to use `.`, like this:
+
+```{r}
+lm.all <- lm(medv ~ ., data = Boston)
+summary(lm.all)
+```
+
+------------------------------------------------------------------------
+
+## Activity: Interpret `lm.all`
+
+**Coefficients**:
+
+-   
+
+**Model Fit**:
+
+**Do you think this is a good model to use for predicting median home values in Boston?**
