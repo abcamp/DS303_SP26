@@ -21,6 +21,8 @@ library(lme4)
 
 data(Boston)
 
+summary(Boston)
+head(Boston)
 ```
 
 ### Create a scatterplot
@@ -28,7 +30,9 @@ data(Boston)
 Create a scatterplot of median home value (`medv`) vs. percentage of lower status residents (`lstat`) in the `Boston` data
 
 ```{r}
-
+ggplot(Boston, aes(lstat, medv)) +
+  geom_point() +
+  geom_smooth(method="lm", se=FALSE) 
 ```
 
 ### Run a linear model using `lm`
@@ -36,7 +40,8 @@ Create a scatterplot of median home value (`medv`) vs. percentage of lower statu
 Create a linear model that predicts the median value of homes (`medv`) based on the percentage of lower status residents (`lstat`) using data from `Boston`
 
 ```{r}
-
+model <- lm(medv ~ lstat, Boston)
+summary(model)
 ```
 
 ## Interpreting model output
@@ -45,7 +50,7 @@ Some things to look at:
 
 -   **Residuals**: the differences between the observed values and the values predicted by the model
 
--   **Coefficients**: the parameters that represent the relationship between predictor variables and the response variable, indicating how much the response changes for a one-unit change in the predictor
+-   **Coefficients**: the parameters that represent the relationship between predictor variables and the outcome variable, indicating how much the response changes for a one-unit change in the predictor
 
 -   **Model Fit (R-squared)**: a stat that indicates the proportion of variance in the response variable explained by the predictor variables; ranges from 0 to 1
 
@@ -92,7 +97,8 @@ Some things to look at:
 Create a linear model to predict the median value of homes (`medv`) based on both the percentage of lower status residents (`lstat`) and the age of the homes (`age`) using data from `Boston`:
 
 ```{r}
-
+model2 <- lm(medv ~ lstat + age, Boston)
+summary(model2) 
 ```
 
 **Residuals**: The differences between the predicted and actual values range from -15.981 to 23.158, with a median of -1.283. This shows how far off the predictions can be from the actual values.
@@ -122,7 +128,7 @@ summary(lm.all)
 
 ## Activity: Interpret `lm.all`
 
-**Coefficients**:
+**Coefficients** (at least three)
 
 -   
 
