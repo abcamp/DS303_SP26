@@ -1,0 +1,193 @@
+---
+title: "Practice: Simple Linear Regression"
+author: 
+  - "Student Name"
+  - "DS303, SP25"
+  - "Prof. Amber Camp"
+date: 1/17/25
+format: html
+editor: visual
+theme: spacelab
+---
+
+## Introduction to Simple Linear Regression
+
+This is an introduction to **simple linear regression**, a method used to model the relationship between two variables by fitting a straight line to the data. The goal is to see how one variable (the independent variable) affects another (the dependent variable).
+
+For example, you might predict a student’s test score (dependent variable) based on study hours (independent variable). Simple linear regression helps find a trend or regression line that best fits the data, allowing you to make predictions for varying study hours.
+
+Simple linear regression is useful for studying **cause-and-effect** or **making predictions**, especially when the relationship between the variables is linear. It works best with **continuous data**.
+
+## *y* = *mx* + *b* ?
+
+We discussed in class the other day about the basic regression equation. I presented it as:
+
+*y* = *b~0~* + *b~1~x*
+
+Many of you quickly noticed the similarity between *y* = *b~0~* + *b~1~x* and *y* = *mx* + *b.* And you're right–they are both basically the same formula for a straight line. Is there any actual difference at all?
+
+Yes! Despite, again, basically being the same thing, the difference in notation depends on context (when we use the two and how we discuss them). See what you can find online about this, and feel free to discuss with those around you.
+
+### Question 1
+
+What is the difference between *y* = *b~0~* + *b~1~x* and *y* = *mx* + *b*, and when might we use one over the other? Please use your own words
+
+#### Answer:
+
+(write your answer here)
+
+### Question 2
+
+Think back to our class discussion and your previous studies in math. Tell me below what each part of the equation *y* = *b~0~* + *b~1~x* means. Do this from memory if you can!
+
+#### Answer:
+
+(write your answer here)
+
+## Let's try it
+
+Start by loading the `ISLR2` package, which is a very large collection of datasets and functions that accompanies the textbook [*An Introduction to Statistical Learning*](https://www.statlearning.com). You may need to install `ISLR2` and `lme4` if you haven't already.
+
+```{r, echo = FALSE, message = FALSE}
+# install.packages("ISLR2")
+# install.packages("lme4")
+
+library(ISLR2)
+library(lme4)
+```
+
+## Boston Housing Data
+
+The `ISLR2` library contains the `Boston` data set, which records `medv` (median house value) for 506 census tracts in Boston. We will seek to predict `medv` using 12 predictors such as `rm` (average number of rooms per dwelling), `age` (proportion of owner-occupied units built prior to 1940) and `lstat` (percent of households with low socioeconomic status).
+
+### Question 3
+
+You can just call upon the data (it's already in the package). I'll get you started, but show me below how you'd explore the data even further by adding code in the below code chunk.
+
+```{r}
+head(Boston)
+
+```
+
+We learned in class that we can apply a simple linear regression using `lm`. Here is the basic format:
+
+> `model <- lm(y ~ x, data = df)`
+
+### Question 4
+
+Use the above basic format to create a linear regression model to predict the **median home value** (`medv`) based on the **number of rooms per dwelling** (`rm`), using the data from the `Boston` dataset. Assign it to the variable `lm.model`.
+
+```{r}
+
+```
+
+If you set it up right, you should be able to run your model name in the below code chunk and view the basic model output. Give it a try:
+
+```{r}
+
+```
+
+### Question 5
+
+What is your model output telling you?
+
+#### Answer
+
+(write your answer here)
+
+You can also try `summary(lm.model)`.
+
+```{r}
+summary(lm.model)
+```
+
+### Question 6
+
+What additional information do you get from this summary of the model output?
+
+#### Answer
+
+(write your answer here)
+
+## confint() and predict()
+
+In order to obtain a confidence interval for the coefficient estimates, we can use the `confint()` command. The `predict()` function can be used to produce confidence intervals and prediction intervals for the prediction of `medv` for a given value of `rm`. Run these and see if you can figure out what it is telling you.
+
+```{r}
+confint(lm.model)
+
+predict(lm.model, data.frame(rm = (c(4, 6, 8))), interval = "confidence")
+
+predict(lm.model, data.frame(rm = (c(4, 6, 8))), interval = "prediction")
+```
+
+### Question 7
+
+What do you think the above `confint()` and `predict()` information means? It's okay to guess or use online tools to explore.
+
+#### Answer
+
+(write your answer here)
+
+## Visualizing
+
+Here is a simple base R way to plot this data:
+
+```{r}
+plot(Boston$rm, Boston$medv)
+abline(lm.model)
+```
+
+### Question 8
+
+Can you convert the above code chunk to `ggplot`? Try below. Have fun with editing the appearance of your plot if you'd like :)
+
+```{r}
+
+```
+
+In a future class, we'll explore some diagnostic plots and what that means for evaluating models. For now, just run the below and have a look. Have you seen these before?
+
+```{r}
+par(mfrow = c(2, 2))
+plot(lm.model)
+```
+
+## Run another model
+
+Now it's your turn to apply a linear regression to other variables from the Boston dataset.
+
+You can view the dataset by running `View(Boston)` or read about the variables by running `??ISLR2::Boston`.
+
+### Question 9
+
+What variables are you interested in exploring using a linear regression? Just pick an `x` and a `y` and describe your research question below in plain English. You are welcome to explore a multiple regression (more than one predictor), like we began exploring last class, but I recommend just sticking to one predictor until you are comfortable.
+
+#### Answer
+
+(write your answer here)
+
+### Question 10
+
+#### Part 1
+
+Build and run your model and examine the model output:
+
+```{r}
+
+
+
+
+```
+
+#### Part 2
+
+Explain what you found in plain English. Do your best.
+
+#### Answer
+
+(write your answer here)
+
+## The end!
+
+That's it for now. Please feel free to raise questions in class or via email!
