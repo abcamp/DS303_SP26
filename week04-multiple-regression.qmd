@@ -1,0 +1,289 @@
+---
+title: "Multiple Linear Regression"
+author: 
+  - "Student Name"
+  - "DS303, SP25"
+  - "Prof. Amber Camp"
+date: 2/2/26
+format: html
+editor: visual
+theme: spacelab
+---
+
+## Introduction to Multiple Linear Regression
+
+### Setup
+
+Load the packages we'll need:
+
+```{r, message = FALSE, warning = FALSE}
+library(ISLR2)
+library(tidyverse)
+library(lme4)
+```
+
+Load the Boston housing data explicitly:
+
+```{r}
+data(Boston)
+```
+
+In our last class, you experimented with adding multiple predictors to your regression models. Some of you built models like this:
+
+```{r}
+weird <- lm(medv ~ tax + age + lstat + crim, Boston)
+all <- lm(medv ~ ., Boston)
+```
+
+Today, we're going to formalize what you were doing and learn to properly interpret multiple regression models.
+
+**Multiple linear regression** extends simple linear regression by allowing us to include multiple predictor variables. Instead of just one *x* predicting *y*, we can have *x₁*, *x₂*, *x₃*, and so on.
+
+The equation looks like this:
+
+*y* = *b₀* + *b₁x₁* + *b₂x₂* + *b₃x₃* + ... + *b~n~x~n~*
+
+Where:
+
+-   *y* is the predicted value of the outcome
+
+-   *b₀* is the intercept
+
+-   *b₁*, *b₂*, *b₃*, etc. are the coefficients (slopes) for each predictor
+
+-   *x₁*, *x₂*, *x₃*, etc. are the predictor variables
+
+## Why use multiple regression?
+
+There are three main reasons we might want to include multiple predictors:
+
+1.  **Control for confounding variables**: In the real world, outcomes are affected by multiple factors. If we only look at one predictor, we might be capturing the effects of other related variables too.
+
+2.  **Better understanding of relationships**: We can see which factors matter most and how they work together.
+
+3.  **Improved predictions**: More relevant information generally leads to better predictions (though we have to be careful not to overdo it. More on that in a later class!)
+
+## The key concept: "*holding other variables constant*"
+
+This is the most important thing to understand about multiple regression!!
+
+Let's run two models and compare them:
+
+```{r}
+# simple linear regression: just rooms predicting median value
+simple <- lm(medv ~ rm, data = Boston)
+summary(simple)
+```
+
+```{r}
+# multiple (linear) regression: rooms AND socioeconomic status predicting median value
+multiple <- lm(medv ~ rm + lstat, data = Boston)
+summary(multiple)
+```
+
+### Question 1
+
+Look at the coefficient for `rm` (rooms) in both models. What do you notice? Why do you think the coefficient changed when we added `lstat`?
+
+#### Answer:
+
+(write your answer here)
+
+### Understanding the interpretation (interpretation templates!)
+
+In the **simple regression**, the coefficient for `rm` tells us: *"For every additional room, median home value increases by \$X"*
+
+In the **multiple regression**, the coefficient for `rm` tells us: *"For every additional room, median home value increases by \$Y, **holding socioeconomic status (lstat) constant**"*
+
+That last part, "holding other variables constant", is crucial. It means we're looking at the effect of rooms *independent* of socioeconomic status.
+
+This is also called the ***ceteris paribus*** interpretation (Latin for "all else equal")
+
+## Building multiple regression models in R
+
+The syntax is straightforward—you just add predictors with the `+` symbol:
+
+```{r}
+# two predictors
+model_2 <- lm(medv ~ rm + lstat, data = Boston)
+
+# three predictors
+model_3 <- lm(medv ~ rm + lstat + crim, data = Boston)
+
+# many predictors
+model_many <- lm(medv ~ rm + lstat + crim + age + dis + tax, data = Boston)
+
+# all predictors
+model_all <- lm(medv ~ ., data = Boston)
+```
+
+Let's look at one of these models in detail:
+
+```{r}
+summary(model_3)
+```
+
+## Reading multiple regression output
+
+When you run `summary()` on a multiple regression model, you get several pieces of information:
+
+**Coefficients table:** Each predictor gets its own row
+
+**Estimate**: The *b* value (slope) for that predictor
+
+**Std. Error**: Uncertainty in the estimate
+
+**t value**: Test statistic
+
+**Pr(\>\|t\|)**: The p-value. "Is this predictor significantly related to the outcome?"
+
+**Model fit statistics:**
+
+-   **Multiple R-squared**: Proportion of variance in *y* explained by all predictors together (0 to 1)
+
+-   **Adjusted R-squared**: R² adjusted for the number of predictors (we'll discuss this more next week)
+
+-   **F-statistic**: Tests whether the overall model is significant
+
+### Question 2
+
+Using `model_3` above (with `rm`, `lstat`, and `crim` as predictors), write out the regression equation with the actual coefficient values. Use the format:
+
+*medv* = \_\_\_\_\_ + \_\_\_\_\_ × *rm* + \_\_\_\_\_ × *lstat* + \_\_\_\_\_ × *crim*
+
+#### Answer:
+
+(write your answer here)
+
+### Question 3
+
+Interpret the coefficient for `lstat` in plain English. Remember to include "holding other variables constant" in your interpretation!
+
+#### Answer:
+
+(write your answer here)
+
+### Question 4
+
+Which predictors are statistically significant at α = 0.05 in `model_3`? How can you tell?
+
+> -   α = 0.05 means we're willing to accept a 5% chance of a Type I error (false positive = "rejecting the null hypothesis when it's actually true")
+>
+> -   If a p-value is **less than 0.05**, we say the result is "statistically significant"
+>
+> -   If a p-value is **greater than 0.05**, we say the result is "not statistically significant"
+
+#### Answer:
+
+(write your answer here)
+
+## Your turn: Build and interpret models
+
+Now you'll practice building your own multiple regression models.
+
+### Question 5
+
+Build a model predicting `medv` (median home value) using **three predictors** of your choice from the `Boston` dataset.
+
+First, build your hypothesis by telling me which three predictors you chose and **why** you think they might be related to home values:
+
+#### Answer:
+
+(write your answer here)
+
+Now build your model:
+
+```{r}
+my_model <- 
+```
+
+### Question 6
+
+Look at the summary of your model. Write out the regression equation with actual numbers:
+
+```{r}
+summary(my_model)
+```
+
+#### Answer:
+
+(write your equation here)
+
+### Question 7
+
+Choose one predictor from your model and interpret its coefficient in plain English. Make sure to use the "holding other variables constant" language!
+
+#### Answer:
+
+(write your answer here)
+
+### Question 8
+
+What is the R² for your model? What does this tell you?
+
+#### Answer:
+
+(write your answer here)
+
+# A note about "accuracy"
+
+Last class, you asked about **model** **accuracy**, and that is a great question! Since this course is called *Modeling for Prediction*, you might wonder why we focus on coefficients and *p*-values instead of jumping straight to prediction metrics like in your ML class.
+
+**Here's the mian difference:**
+
+-   **ML class**: Build black boxes that predict really well
+
+-   **This class**: Build transparent models where you understand what's happening
+
+Both are valuable! Here's when you need what we're learning:
+
+### Why interpretability matters:
+
+**Real-world scenarios:**
+
+-   Your boss asks: "Why did the model predict this?"
+
+-   A doctor needs: "Which factors indicate risk and by how much?"
+
+-   You can't just say "the algorithm said so"
+
+**Small data situations:**
+
+-   ML needs thousands of observations
+
+-   Regression works with n = 50
+
+-   Most real problems: small business data, pilot studies, research
+
+**Making decisions:**
+
+-   ML: "These features predict well"
+
+-   Stats: "Adding a room increases value by \$5K"
+
+-   You need the second one to take action
+
+**Building trust:**
+
+-   "Each room adds \$5K" = You can directly calculate ROI on renovations
+-   "Random forest says rooms are important (importance = 0.23)" = Harder to translate into business decisions
+-   Statistical models give you **the exact relationship** needed for planning and intervention
+
+### What we're doing now:
+
+The metrics we use (R², *p*-values, coefficients) aren't just for understanding. They're essential for building models that predict well *and* that you can explain.
+
+-   **R²**: Low R² probably means poor predictions
+
+-   ***p*****-values**: Non-significant predictors won't help with new data
+
+-   **Coefficients**: Make your model interpretable
+
+Later in the course, we'll add cross-validation and prediction metrics. But this foundation (understanding which predictors matter and how) is essential for that work.
+
+**Important**: Most data science jobs need *both* skills. This class makes you someone who can build models that predict well *and* can be trusted and explained.
+
+# Looking ahead
+
+-   **Wednesday**: We'll explore what happens when relationships aren't straight lines (non-linear transformations and polynomial regression)
+-   **Next week**: We'll formalize how to choose between competing models (model comparison with adjusted R², AIC, and ANOVA)
