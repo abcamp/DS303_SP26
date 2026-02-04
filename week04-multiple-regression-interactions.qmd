@@ -189,6 +189,13 @@ Interpretation:
 
 -   Build the a second model with the same terms but without the interaction. Compare the R² values between your two models. Does adding the interaction improve the model?
 
+Try visualizing the interaction (use the `interaction` package)
+
+```{r}
+
+
+```
+
 # Bonus (scary stuff)
 
 You can have a three-way interaction! It's kind of mind-bending...
