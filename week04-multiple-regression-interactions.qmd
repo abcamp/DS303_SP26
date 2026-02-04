@@ -1,0 +1,207 @@
+---
+title: "Multiple Linear Regression: Interaction Terms"
+author: 
+  - "Student Name"
+  - "DS303, SP25"
+  - "Prof. Amber Camp"
+date: 2/4/26
+format: html
+editor: visual
+theme: spacelab
+---
+
+## Interactions in Multiple Regression
+
+When we add an interaction term, we're asking:
+
+Does the relationship between *x₁* and *y* *depend on* the value of *x₂*?
+
+### Setup
+
+```{r}
+library(ISLR2)
+library(lme4)
+library(tidyverse)
+
+Boston <- Boston
+```
+
+## The basic idea
+
+Without interaction:
+
+-   The effect of rooms on home value is **the same** whether the neighborhood has high or low crime
+
+With interaction:
+
+-   The effect of rooms on home value **changes** depending on crime levels
+
+-   Maybe extra rooms add more value in low-crime areas than high-crime areas
+
+## The math
+
+**Without interaction:** *medv* = *b₀* + *b₁*\**rm* + *b₂*\*crim
+
+```{r}
+model_no_int <- lm(medv ~ rm + crim, data = Boston)
+summary(model_no_int)
+```
+
+**With interaction:** *medv* = *b₀* + *b₁rm + b₂crim + b₃(rm*\**crim*)
+
+```{r}
+model_int <- lm(medv ~ rm + crim + rm:crim, data = Boston)
+
+# or use the shortcut:
+model_int <- lm(medv ~ rm * crim, data = Boston)
+
+summary(model_int)
+```
+
+That last term (*b₃(rm*\**crim*)) is the interaction.
+
+## Interpreting interactions
+
+This is where it gets tricky.
+
+Here's what changes when you add an interaction term:
+
+**Without interaction**, the coefficient for `rm` means:
+
+-   "For every additional room, median home value increases by \$X, holding `crim` constant"
+
+-   This effect is **the same** regardless of the value of `crim`
+
+**With interaction**, the coefficient for `rm` means:
+
+-   "For every additional room, median home value increases by \$X, **when crim = 0**"
+
+-   This effect **changes** depending on the value of crim
+
+-   The interaction term tells you **how much** the effect of rm changes per unit of crim
+
+The main effects are still interpretable, but they now represent **conditional effects** (the effect when the other variable equals zero), rather than a single constant relationship.
+
+```{r}
+# same thing, just printed again
+model_int <- lm(medv ~ rm * crim, data = Boston)
+summary(model_int)
+```
+
+-   **Intercept (*b₀* = -37.26):** The predicted median home value when a home has zero rooms and `crim` is zero is -\$37,257 (not practically meaningful since you can't have zero rooms...)
+
+-   **`rm` (*b₁* = 9.65):** For every additional room, median home value increases by \$9,651, **when `crim` = 0** (holding `crim` constant at zero)
+
+-   **`crim` (*b₂* = 1.46):** For every one-unit increase in `crim`, median home value increases by \$1,463, **when `rm` = 0** (holding rooms constant at zero... counterintuitive, but a good sanity check)
+
+-   **`rm:crim` (*b₃* = -0.28):** For every one-unit increase in `crim`, the effect of an additional room on median home value **decreases** by \$288
+
+    Or equivalently: For every additional room, the effect of `crim` on median home value decreases by \$288.
+
+NOTE: The interaction interpretation is the key one here. The negative interaction means that rooms are worth MORE in low-crime neighborhoods and worth LESS in high-crime neighborhoods.
+
+### Understanding what the interaction means
+
+The interaction coefficient tells us: **"How much does the effect of rooms change for each one-unit increase in `crim`?"**
+
+Or equivalently: **"How much does the effect of `crim` change for each additional room?"**
+
+**Important**: When an interaction is present, the effect of `rm` is no longer constant. It depends on `crim`, and vice versa.
+
+## When to include interactions
+
+Add interaction terms when you have theoretical reasons to believe the effect of one variable depends on another:
+
+-   **Urban vs. rural**: Does education affect income differently in cities vs. countryside?
+
+-   **Treatment dosage × patient age**: Do medications work differently for different age groups?
+
+-   **Marketing spend × season**: Does advertising work better during holidays?
+
+Don't just throw in interactions randomly. The model gets complicated fast and harder to interpret!
+
+# Interaction Plots
+
+### `interaction` method
+
+The three lines represent the rooms-value relationship at different crime levels (mean, +1 SD, -1 SD). The spacing between the lines shows the interaction effect - as crime increases, the positive relationship between rooms and home value weakens. The confidence bands (shaded areas) show we're quite certain about these different slopes.
+
+```{r}
+# install.library("interactions")
+library(interactions)
+
+# fit your model
+model_int <- lm(medv ~ rm * crim, data = Boston)
+
+# create interaction plot
+interact_plot(model_int, 
+              pred = rm,           # x-axis variable
+              modx = crim,         # moderator variable
+              interval = TRUE,     # show confidence intervals
+              int.width = 0.95)    # 95% CI
+
+```
+
+### `ggplot` method
+
+The relationship between number of rooms and home value differs across crime levels. In low-crime neighborhoods (green line), each additional room is associated with a steeper increase in home value compared to high-crime neighborhoods (red line), where the slope is much flatter. This visual pattern confirms our interaction term: the effect of rooms on home value depends on the crime level.
+
+```{r}
+# create groups based on crime levels (low, medium, high)
+Boston <- Boston %>%
+  mutate(crim_level = case_when(
+    crim < quantile(crim, 0.33) ~ "Low Crime",
+    crim < quantile(crim, 0.67) ~ "Medium Crime",
+    TRUE ~ "High Crime"))
+
+# plot with separate lines
+ggplot(Boston, aes(x = rm, y = medv, color = crim_level)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(title = "Interaction: Rooms × Crime Level",
+       x = "Number of Rooms",
+       y = "Median Home Value ($1000s)",
+       color = "Crime Level") +
+  theme_minimal()
+
+```
+
+# Practice
+
+Build a model using `Boston` data that contains an interaction term and interpret the results below.
+
+```{r}
+
+
+```
+
+Interpretation:
+
+-   Intercept:
+
+-   Main effect 1:
+
+-   Main effect 2:
+
+-   Interaction term:
+
+-   Which terms are statistically significant at α = 0.05?
+
+-   Build the a second model with the same terms but without the interaction. Compare the R² values between your two models. Does adding the interaction improve the model?
+
+# Bonus (scary stuff)
+
+You can have a three-way interaction! It's kind of mind-bending...
+
+```{r}
+model_three <- lm(medv ~ rm * crim * lstat, data = Boston)
+summary(model_three)
+```
+
+That last term, `rm:crim:lstat`, would be interpreted like this:
+
+-   For every one-unit increase in `lstat`, the interaction effect between `rm` and `crim` changes by 0.010
+
+-   *"The extent to which crime moderates the effect of rooms on home value itself depends on the socioeconomic status of the neighborhood."*
+
+This is really difficult to interpret meaningfully. Let's avoid this for now.
