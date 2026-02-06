@@ -1,0 +1,216 @@
+---
+title: "Practice: Non-linear Transformations of Predictors"
+author: 
+  - "Student Name"
+  - "DS303, SP25"
+  - "Prof. Amber Camp"
+date: 2/6/26
+format: html
+editor: visual
+theme: spacelab
+---
+
+## Non-linear Transformations of Predictors
+
+Using non-linear transformations of predictors, like adding `lstat2` in a regression model, can help capture non-linear relationships between the predictors and the response variable.
+
+Here's why this can be beneficial:
+
+1.  **Improved Fit**: If the relationship between the predictor and the response is not strictly linear, incorporating polynomial terms can improve the model's ability to fit the data.
+
+2.  **Flexibility**: By including terms like `lstat²`, the model can adjust more flexibly to underlying patterns in the data.
+
+3.  **Capturing Non-Linear Effects**: In many real-world situations, increases in one variable may have diminishing or increasing effects on another. For instance, the impact of `lstat` on `medv` may not be uniform across the whole range.
+
+4.  **Model Diagnostics**: By examining models with and without the non-linear terms, you can evaluate which model better explains the variability in the response variable, often assessed using criteria like R-squared or AIC.
+
+## Let's try it
+
+Start by loading the `ISLR2` package, and also `lme4` and `tidyverse`. For this exercise, we'll continue with the `Boston` data.
+
+```{r, echo = FALSE, message = FALSE}
+library(ISLR2)
+library(lme4)
+library(tidyverse)
+```
+
+## Boston Housing Data
+
+Along with linear models, the `lm()` function can handle non-linear transformations of predictors too! For instance, if you have a predictor `lstat`, you can create a new predictor `lstat²` using `I(lstat^2)`. We use the `I()` function because the `^` symbol has a special role in formula objects, and wrapping it this way helps us use the standard R method to raise `lstat` to the power of 2. Now, let’s run a regression of `medv` on both `lstat` and `lstat²`!
+
+```{r}
+data(Boston) # load the Boston data
+Boston <- Boston
+```
+
+### Basic linear regression syntax
+
+As review, here is the basic model.
+
+```{r}
+# simple linear regression
+model <- lm(y ~ x, data=df)
+
+# multiple linear regression
+model <- lm(y ~ x + z, data=df)
+
+# multiple linear regression with an interaction term
+model <- lm(y ~ x * z, data=df)
+
+# spelled out/long form of the above. they do the same thing
+model <- lm(y ~ x + z + x:z, data=df)
+```
+
+### Visualize first
+
+Make a scatterplot!
+
+```{r}
+scatter <- ggplot(Boston, aes(x = lstat, y = medv)) +
+  geom_point() 
+
+scatter
+```
+
+### Fit the model (with a linear term)
+
+```{r}
+lm.simple <- lm(medv ~ lstat, data = Boston) 
+summary(lm.simple)
+```
+
+### Fit the model with a quadratic term
+
+```{r}
+lm.quad <- lm(medv ~ lstat + I(lstat^2), data = Boston) 
+summary(lm.quad)
+```
+
+The very small *p*-value for the quadratic term indicates that it significantly enhances the model. To better understand how much better the quadratic fit is compared to the linear fit, we can use `anova()` for a detailed comparison.
+
+```{r}
+# compare the two models
+anova(lm.simple, lm.quad)
+```
+
+Model 1 represents the simpler linear model with a single predictor, `lstat`.\
+Model 2 is the larger quadratic model that includes both `lstat` and `I(lstat^2)`.
+
+The `anova()` function conducts a hypothesis test to compare these two **nested models**. The null hypothesis states that the simpler model fits the data just as well as the larger model. In other words, that the additional quadratic term does not meaningfully reduce the residual error. The alternative hypothesis is that adding the quadratic term improves the model’s fit.
+
+A small *p*-value here indicates that the difference in fit between the two models is statistically meaningful. Importantly, this does not automatically mean that the quadratic model is the “best” model overall, only that the two models do not fit the data equally well. Examining the RSS values shows that the model including `lstat²` has lower residual error and therefore fits the data better than the simpler linear model.
+
+In this case, the F-statistic is 135, meaning that the reduction in residual error associated with adding `lstat²` is about 135 times larger than what we would expect from random noise alone. In summary, Model 2 is an improvement, and is the preferred model. This result is consistent with earlier visual evidence of a non-linear relationship between `medv` and `lstat`.
+
+```{r}
+# linear regression (striaght line)
+ggplot(Boston, aes(x = lstat, y = medv)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ x)
+  
+```
+
+Build another plot adding the quadratic term).
+
+```{r}
+ggplot(Boston, aes(x = lstat, y = medv)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ x + I(x^2))
+  
+```
+
+### How to interpret model summary
+
+```{r}
+summary(lm.quad)
+```
+
+In polynomial regression, the coefficients are interpreted jointly to describe the shape of the relationship, not as separate effects.
+
+Both the linear and quadratic terms were statistically significant here, providing strong evidence that the relationship between the variables is not purely linear.
+
+-   Median home value decreases sharply as `lstat` increases, but this decline slows at higher values of `lstat`, producing a curved relationship. The model explains approximately 64% of the variation in `medv` (adjusted R^2^=0.64). These results are consistent with visual inspection of the data and support the use of a non-linear transformation of `lstat`.
+
+#### New "template":
+
+-   A quadratic regression indicates a non-linear relationship between `lstat` and `medv`, in which median home value decreases sharply as `lstat` increases and then levels off at higher values. The statistically significant quadratic term provides strong evidence that this relationship is not purely linear.
+
+### Higher order polynomials
+
+To create a cubic fit, we can add a predictor in the form of `I(X^3)`. However, this method can become cumbersome for higher-order polynomials. A more efficient approach is to use the `poly()` function to generate the polynomial directly within `lm()`. For instance, the following command creates a fifth-order polynomial fit:
+
+```{r}
+lm.fit3 <- lm(medv ~ poly(lstat, 3), data = Boston)
+summary(lm.fit3)
+```
+
+When you use `poly(lstat, 3)` the coefficients themselves are not directly interpretable in terms of units of `lstat`. They are orthogonal polynomial basis coefficients, chosen for numerical stability, not for human interpretation.
+
+So we interpret the model and its shape, not the individual numbers.
+
+-   A cubic polynomial model provides strong evidence of a non-linear relationship between `lstat` and `medv`.
+
+-   The relationship is more complex than a simple quadratic, allowing multiple changes in curvature across the range of `lstat`.
+
+-   All three polynomial components are statistically significant, indicating that lower-, mid-, and higher-order curvature all contribute to explaining variation in home values.
+
+In an assignment or paper, you'd say something like:
+
+| A cubic polynomial regression indicates a complex non-linear relationship between `lstat` and `medv`, with multiple changes in curvature across the range of `lstat`. The model explains approximately 66% of the variation in median home value (adjusted R^2^=0.66), providing a modest improvement over lower-order polynomial models.
+
+### Visualize x\^3
+
+```{r}
+ggplot(Boston, aes(x = lstat, y = medv)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ poly(x, 3))
+
+```
+
+### Continue exploring the model
+
+Below, compare `lm.fit3` with `lm.quad`. What do you find?
+
+```{r}
+anova(lm.quad, lm.fit3)
+```
+
+Try a higher order polynomial of your choice and compare with other models you've run. What is the best model for this data? (You can also try a logarithmic transformation using `log()`.)
+
+```{r}
+lm.fit_higher <- lm(medv ~ poly(lstat, ##), data = Boston)
+
+anova(lm.fit5, lm.fit_higher)
+
+ggplot(Boston, aes(x = medv, y = lstat)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ poly(x, ##))
+```
+
+### Don't overfit!
+
+As we increase the degree of the polynomial, the model becomes more flexible and will almost always fit the data better. However, greater flexibility also increases the risk of [***overfitting***]{.underline}: capturing noise rather than meaningful signal.
+
+In practice, we prefer the *simplest model that adequately captures the pattern*, especially when improvements in fit are small. Visual inspection, model comparison metrics, and out-of-sample evaluation help guide this decision.
+
+| More complex models fit the training data better, but may generalize worse. A higher-degree polynomial is not automatically a better model!
+
+### Your turn!
+
+Continue using the `Boston` data set for now, but pick a couple other variables.
+
+### Visualize
+
+Make a scatterplot to visualize the relationship between your variables. What kind of curve fits this data best?
+
+```{r}
+
+```
+
+### Transform your predictors
+
+See if you can apply polynomials to find a better fit. Be sure to compare your model with the simple `lm()`.
+
+```{r}
+
+```
