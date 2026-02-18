@@ -1,0 +1,121 @@
+---
+title: "Revisiting Interactions"
+author: 
+  - "Student Name"
+  - "DS303, SP25"
+  - "Prof. Amber Camp"
+date: 2/18/26
+format: html
+toc: true
+editor: visual
+theme: spacelab
+---
+
+## Revisiting Interactions
+
+An interaction means that the effect of one variable changes depending on the value of another variable.
+
+Without interactions, our model assumes every predictor works *independently*. Let's consider this (made up) example from class:
+
+`lm(fun ~ food + thomas + food:thomas)`
+
+`food` makes things fun regardless of who's there, `thomas` makes things fun regardless of what's being served. The interaction term is how we tell the model: *wait, let's consider what happens when these two things aren't independent.*
+
+### Let's build our intuition: Three Scenarios
+
+A useful framing before touching any numbers is to think about three possible worlds:
+
+**World 1: No interaction.** Food is great (+fun). Thomas is great (+fun). Having both is just the sum of those two good things. The effects are additive and independent.
+
+**World 2: Positive interaction.** Thomas loves good food and becomes the life of the party when it's around. Now having both is better than just adding them. They amplify each other. The interaction term is positive.
+
+**World 3: Negative interaction (our example).** Thomas has complicated feelings about food. His presence actually *dampens* the effect of good food (or maybe good food dampens *his* effect). The interaction term is negative, pulling the combined effect back down below what you'd expect from adding them separately.
+
+The key here is: **the interaction doesn't replace the main effects, it adjusts them.** You still have food's baseline effect, Thomas's baseline effect, and then an interation term for when they co-occur.
+
+## Main Effects vs. Interaction
+
+What does the main effect of `food` mean, if there's also a `food:thomas` interaction in the model?
+
+The answer is that the main effect of `food` now represents food's effect **when Thomas is NOT there** (i.e., when thomas = 0). The interaction term then tells you how much that effect *shifts* when Thomas IS there. The main effect becomes conditional.
+
+## Student Examples Activity
+
+Come up with a scenario that has:
+
+1.  Two predictor variables that each make sense on their own
+
+2.  A plausible reason why their combined effect is *not* just the sum of the parts
+
+Identify whether the interaction would be **positive** (amplifying) or **negative** (dampening). We aren't considering numbers at this point... We are just thinking through this conceptually.
+
+If you get stuck: think about studying and sleep, or exercise and diet, or experience and confidence, or temperature and humidity on comfort. Most real-world things interact with something!
+
+### Example 1
+
+### Example 2
+
+## Try the numbers?
+
+Let's have another look at `carseats`.
+
+Here we're predicting `Sales` of car seats using `Price` and `ShelveLoc` (shelf location: Bad, Medium, or Good):
+
+`lm(Sales ~ Price * ShelveLoc, data = carseats)`
+
+Note that `Price * ShelveLoc` is shorthand for `Price + ShelveLoc + Price:ShelveLoc`. It automatically includes both main effects and the interaction.
+
+```{r}
+library(ISLR2)
+library(lme4)
+
+carseats <- Carseats
+
+model <- lm(Sales ~ Price * ShelveLoc, carseats)
+summary(model)
+
+```
+
+### The Main Effects
+
+The main effects tell the baseline story.
+
+-   For every one-dollar increase in `Price`, `Sales` decreases by about `0.055` units, and this is significant.
+
+-   A Good shelf location adds about 6.14 units of sales compared to a Bad location (the reference level), also significant.
+
+-   Medium shelf location shows a smaller bump of 1.63, but that result is not significant
+
+Remember: because we have an interaction in the model, these main effects are conditional. Specifically, they represent the effect of each variable **when the other is at its reference level**. So `Price`'s coefficient here describes price sensitivity specifically for the Bad shelf location group.
+
+### The Interaction Terms
+
+The interaction terms ask: *does the effect of Price on Sales change depending on shelf location?*
+
+The estimates suggest a small additional price sensitivity for Good locations (`-0.010564`) and a super small (almost no difference) for Medium locations (`0.001984`). However, both of these are **not significant**. Their p-values are `0.369` and `0.843` respectively, far above the 0.05 threshold.
+
+This doesn't mean the interaction is exactly zero. It means we don't have enough evidence to confidently say it's *different from zero* . In practical terms: we looked for a difference in price sensitivity across shelf locations, and we didn't find convincing evidence. The effect we estimated is small enough that it could plausibly be due to random variation (chance) in our sample rather than a real, consistent pattern.
+
+### What Does the Model Tell Us Overall?
+
+The big takeaway from this output is that **price and shelf location both matter for sales, but they appear to work independently** (at least in this dataset). A good shelf location lifts sales, and higher prices hurt sales, but a good shelf location doesn't seem to make customers meaningfully more or less price-sensitive.
+
+### Helpful (maybe) sentence structures:
+
+> The effect of \_\_\_ on \_\_\_ increases/decreases by \_\_\_ for every one unit increase in \_\_\_ (compared to the reference level / holding other variables constant).
+
+-   *"When `Price` increases by one dollar, the effect of `ShelveLoc` on `Sales` shifts by -0.011 units (for Good locations compared to Bad)."*
+
+Or you can flip it to make the conditionality more explicit:
+
+> When \_\_\_ increases by one unit, the effect of \_\_\_ on \_\_\_ shifts by \_\_\_.
+
+-   *"The effect of `Price` on `Sales` decreases by an additional 0.011 units for every one dollar increase in `Price`, for Good shelf locations compared to Bad."*
+
+The key thing to emphasize is that unlike main effects, interaction interpretations are inherently *two-variable sentences*. You can't talk about one without naming the other.
+
+When a categorical variable is involved, you might want this version:
+
+> Compared to the reference group, the effect of \_\_\_ on \_\_\_ is \_\_\_ larger/smaller for the \_\_\_ group.
+
+-   *"Compared to Bad shelf locations, the effect of `Price` on `Sales` is 0.011 units smaller (per dollar) for Good shelf locations."*
