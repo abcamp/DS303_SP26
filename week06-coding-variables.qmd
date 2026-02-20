@@ -40,6 +40,9 @@ Following the UCLA resource, we will use data frame called `hsb2` and focusing o
 ```{r}
 # read in data from URL
 hsb2 <- read.table('https://stats.idre.ucla.edu/stat/data/hsb2.csv', header=T, sep=",")
+
+skim <- skimr::skim(hsb2)
+summary(as.factor(hsb2$race))
 ```
 
 Let's create `race.f`, which is the `race` data re-labeled and also turned into factors.
@@ -64,7 +67,7 @@ ggplot(hsb2, aes(x = race.f, y = write)) +
   geom_boxplot()
 
 ggplot(hsb2, aes(x = race.f, y = write)) +
-  geom_point(width = 0.2, height = 0) 
+  geom_jitter(width = 0.2, height = 0) 
 
 ```
 
@@ -76,11 +79,11 @@ We've already seen dummy coding, but it is good to see it again.
 
 ## Class activity
 
-Split into four groups. Explore your assigned coding scheme and answer the below five questions. Then, apply your coding scheme to the `hsb2` data and walk us through its interpretation.
+Split into four groups. Explore your assigned coding scheme and answer the below four questions. Then, apply your coding scheme to the `hsb2` data and walk us through its interpretation.
 
 ## Dummy Coding (a.k.a. Treatment Coding)
 
-(Selena, Ashley, Lela)
+(Vlad)
 
 1.  What comparisons are made with this coding scheme? How does this coding scheme affect the coefficients in regression models? (What do the coefficients represnt? What is the reference level?)\
     \
@@ -112,7 +115,7 @@ Summarize these findings. What is your reference group, and how do the other gro
 
 ## Simple Coding
 
-(Cade, Brandon, Izack)
+(Lydia)
 
 1.  What comparisons are made with this coding scheme? How does this coding scheme affect the coefficients in regression models? (What do the coefficients represnt? What is the reference level?)\
 
@@ -150,7 +153,7 @@ Summarize these findings. What is your reference group, and how do the other gro
 
 ## Deviation Coding (a.k.a. Effect Coding)
 
-(Alii, Bennett, LaVelle)
+(Grace)
 
 1.  What comparisons are made with this coding scheme? How does this coding scheme affect the coefficients in regression models? (What do the coefficients represnt? What is the reference level?)\
 
@@ -201,7 +204,7 @@ Summarize these findings. Unlike dummy and simple coding, there is no traditiona
 
 ## Helmert Coding
 
-(Will, Warren)
+(Beryl)
 
 1.  What comparisons are made with this coding scheme? How does this coding scheme affect the coefficients in regression models? (What do the coefficients represnt? What is the reference level?)\
     \
