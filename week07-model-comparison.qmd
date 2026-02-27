@@ -69,7 +69,7 @@ summary(m1)
 Run one more model that includes one more variable.
 
 ```{r}
-m2 <- lm(mpg ~ wt + ##, data = mtcars)
+m2 <- lm(mpg ~ wt + hp, data = mtcars)
 summary(m2)
 ```
 
@@ -125,7 +125,7 @@ anova(m2, m1)
 Let's add another variable.
 
 ```{r}
-m3 <- lm(mpg ~ wt + ## + ##, data = mtcars)
+m3 <- lm(mpg ~ wt + hp + cyl, data = mtcars)
 summary(m3)
 ```
 
@@ -137,11 +137,19 @@ anova(m2, m3)
 
 `anova()` is only going to make sense with nested models. And, typically, you'd want to compare models that are adjacent to one another (only differing by one term). But that is not strictly required. For example, compare `m1` and `m3` even though they are two terms apart.
 
+m3 \> m1
+
+m2 \> m1
+
+m3 /\> m2
+
 ```{r}
 anova(m1, m3)
 
 anova(m1, m2)
 anova(m2, m3)
+
+anova(m2, m3, m1)
 ```
 
 Which model do we want to use?
@@ -154,6 +162,7 @@ Use AIC to compare model fit while considering model complexity.
 
 ```{r}
 AIC(m1, m2)
+AIC(m2, m3)
 ```
 
 ## Stepwise regression (stepwise comparison)
@@ -209,7 +218,7 @@ stepwise_model <- step(m.all, direction = "both")
 
 # in order to use "forward", you need to present it a "scope" by including the null model
 m.null <- lm(mpg ~ 1, data = mtcars)
-stepwise_model <- step(m.null, scope = list(lower = m.null, upper = m.all),direction = "forward")
+stepwise_model <- step(m.null, scope = list(lower = m.null, upper = m.all), direction = "forward")
 ```
 
 This analysis gives us a recommendation of `mpg ~ wt + qsec + am`. Let's try comparing this model with our best model from above.
@@ -223,4 +232,14 @@ anova(m2, m.best) # doesn't really work because these models aren't nested, but 
 # how would you fix this?
 AIC(m2, m.best)
 
+```
+
+### Correlation Matrix
+
+```{r}
+install.packages("corrplot")
+library(corrplot)
+m <- cor(mtcars)
+corrplot(m)
+corrplot(abs(m)) # absolute value of m, so everything is positive
 ```
