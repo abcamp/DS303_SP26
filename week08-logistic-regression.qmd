@@ -1,0 +1,214 @@
+---
+title: "Logistic Regression"
+author: 
+  - "Student Name"
+  - "DS303, SP25"
+  - "Prof. Amber Camp"
+date: 2/24/25
+format: html
+editor: visual
+theme: spacelab
+---
+
+## Logistic Regression
+
+You know all about linear regression now! Let's talk about logistic regression. Logistic regression is a type of regression analysis used when the dependent variable is binary (e.g., success/failure, yes/no, high/low, green/blue). It models the **probability** that a given input point belongs to a particular category.
+
+## Log Odds
+
+Logistic regression relies on log-odds to model the relationship between predictor variables and a binary outcome
+
+-   **Odds** are a way to compare the likelihood of an event occurring to the likelihood of it not occurring.
+
+-   **Log-odds** transforms the odds into a logarithmic scale.
+
+Log-odds converts probabilities into a continuous scale, enabling a linear relationship between predictors and the likelihood of an event. This transformation is key for understanding and interpreting logistic regression models.
+
+## Why not just use linear regression?
+
+**Linear regression** is not suitable for binary outcomes because:
+
+-   It can predict values outside \[0, 1\]
+
+-   It assumes a linear relationship, while binary outcomes follow an S-shaped curve
+
+The logistic function, or sigmoid function, solves this by mapping any real number to (0, 1).
+
+## Today: Practical stuff first
+
+Focus will be on the practical application. We may cover a bit more in-depth theory on Friday.
+
+By the end of today's lesson, you should be able to:
+
+-   Understand the concept of logistic regression and its use cases
+
+-   Interpret logistic regression coefficients
+
+-   Evaluate model fit and performance
+
+-   Implement logistic regression in R
+
+## Load Packages
+
+Standard suspects: `lme4` and `tidyverse`. For this exercise, we'll use the `Default` data from the `ISLR2` package.
+
+```{r, echo = FALSE, message = FALSE}
+# install.packages("ISLR2")
+# install.packages("lme4")
+
+library(lme4)
+library(tidyverse)
+library(ISLR2)
+```
+
+## Load & Explore Data
+
+```{r}
+default <- Default
+skim_data <- skimr::skim(default)
+View(skim_data)
+
+?Default
+```
+
+This is credit card default data. Binary variables incl `default` and `student`. Continuous variables include `income` and `balance`.
+
+## Basic logistic regression syntax
+
+Here is the basic model:
+
+`model <- glm(y ~ x, data = df, family = binomial)`
+
+Notes!
+
+-   Make sure you are using `glm()` and not `lm()`
+
+-   Make sure you include `family = binomial`. This constrains the probabilities between `[0, 1]` and transforms the probabilities along the log-odds scale
+
+## Visualize first
+
+Explore the data visually.
+
+```{r}
+# use ggplot
+# density plot: balance
+ggplot(default, aes(x = balance)) +
+  geom_density(fill = "lightblue", alpha = 0.6) +
+  labs(title = "Balance Distribution", x = "Balance", y = "Density")
+
+# density plot: balance distribution by default status
+ggplot(default, aes(x = balance, fill = default)) +
+  geom_density(alpha = 0.6, position = "identity") +
+  labs(title = "Balance Distribution by Default Status", x = "Balance", y = "Density")
+# represents the proportion of customers with balances in that range, allowing you to see where balances are concentrated for each group
+
+# boxplot for balance by default status
+ggplot(default, aes(x = default, y = balance)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Balance by Default Status", x = "Default Status", y = "Balance")
+
+# density plot: income
+ggplot(default, aes(x = income)) +
+  geom_density(fill = "lightgreen", alpha = 0.6) +
+  labs(title = "Income Distribution", x = "Income", y = "Density")
+
+# income vs. default status
+ggplot(default, aes(x = income, fill = default)) +
+  geom_density(alpha = 0.6, position = "identity") +
+  labs(title = "Income Distribution by Default Status", x = "Income", y = "Density")
+
+# boxplot for income by default status
+ggplot(default, aes(x = default, y = income)) +
+  geom_boxplot(fill = "lightgreen") +
+  labs(title = "Income by Default Status", x = "Default Status", y = "Income")
+
+# count/proportion of default status by student status
+ggplot(default, aes(x = student, fill = default)) +
+  geom_bar(position = "fill") +
+  labs(title = "Default Rate by Student Status",
+       x = "Student Status",
+       y = "Proportion",
+       fill = "Default") +
+  theme_minimal()
+
+```
+
+## Apply logistic regression
+
+Edit the below to predict `student` status based on `income`.
+
+```{r}
+student <- glm(y ~ x, data = default, family = binomial)
+summary(student)
+```
+
+Interpretation of Estimate coefficients:
+
+-   **`(Intercept)`**: 9.436
+
+    -   This is the log-odds of being a student when income is zero.
+
+-   **`income`**: -3.945e-04 (or -0.0003945)
+
+    -   This coefficient represents the change in the log-odds of being a student for a one-unit increase in income. Since the coefficient is negative, it suggests that **as income increases, the log-odds of being a student decreases**.
+
+### Include `default`
+
+```{r}
+student2 <- glm(student ~ income + default, data = default, family = binomial)
+summary(student2)
+```
+
+Interpretation of Estimate coefficients:
+
+-   **`defaultYes`**: 3.828e-01 (or 0.3828)
+
+    -   Indicates that being in the "Yes" category for `default` (i.e., having defaulted) is associated with an increase of approximately 0.3828 in the log-odds of being a student, when compared to `defaultNo` (those who have not defaulted). This effect is not significant, however.
+
+### Try another
+
+Edit the below to predict `default` status based on `income`.
+
+```{r}
+default_model <- glm(default ~ income, data = default, family = binomial)
+summary(default_model) 
+```
+
+Interpret the results below:
+
+Interpretation of Estimate coefficients:
+
+-   **`(Intercept)`**: -3.094e+0
+
+    -   This is the log-odds of defaulting on your credit card when income is zero.
+
+-   **`income`**: -8.353e-06
+
+    -   This coefficient represents the change in the log-odds of defaulting on your credit card for every one-unit increase in income. Since the coefficient is negative, it suggests that **as income increases, the log-odds of defaulting decreases**.
+
+## Model comparison
+
+Choose either `student` or `default` and try to build the optimal model that predicts that status. Start by including all other terms, and then perform model comparison to find the best model to predict the status you chose.
+
+```{r}
+my_model <- glm(y ~ x, data = df, family = binomial)
+```
+
+Interpret your findings here:
+
+(Write answer)
+
+## Was that too easy?
+
+Load `mtcars` and build a model to predict whether transmission is automatic or manual. You will have to perform a transformation on the transmission data first (to turn it into a factor)
+
+```{r}
+mtcars <- mtcars
+
+?mtcars # use this to remind yourself of which variables are present
+
+# transform transmission data to correct type
+
+
+# build model
+```
