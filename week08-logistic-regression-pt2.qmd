@@ -2,7 +2,7 @@
 title: "Logistic Regression part 2"
 author: 
   - "Student Name"
-  - "DS303, SP25"
+  - "DS303, SP26"
   - "Prof. Amber Camp"
 date: 3/6/26
 format: html
