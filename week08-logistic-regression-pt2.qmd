@@ -1,0 +1,376 @@
+---
+title: "Logistic Regression part 2"
+author: 
+  - "Student Name"
+  - "DS303, SP25"
+  - "Prof. Amber Camp"
+date: 3/6/26
+format: html
+editor: visual
+theme: spacelab
+---
+
+## Logistic Regression, part 2
+
+Last class, we applied logistic regression to the `Default` data. Let's spend a bit more time this class covering *what* logistic regression is and how it works.
+
+Logistic regression is a type of regression analysis used when the dependent variable or outcome is **binary**. It models the p**robability that a given input point belongs to a particular category**.
+
+The logistic model is defined as:
+
+$\text{logit}(p) = \log\left(\frac{p}{1-p}\right) = \beta_0 + \beta_1x_1 + \beta_2x_2 + \dots + \beta_nx_n$
+
+where $p$ is the probability of the outcome being 1.
+
+## Log Odds
+
+Logistic regression relies on log-odds to model the relationship between predictor variables and a binary outcome
+
+-   **Odds** are a way to compare the likelihood of an event occurring to the likelihood of it not occurring.
+
+-   **Log-odds** transforms the odds into a logarithmic scale.
+
+Log-odds convert probabilities into a continuous scale, enabling a linear relationship between predictors and the likelihood of an event. This transformation is key for understanding and interpreting logistic regression models.
+
+## Why not just use linear regression (again)?
+
+**Linear regression** is not suitable for binary outcomes because:
+
+-   It can predict values outside \[0, 1\] \<- this range is fundamental to understanding probability
+
+-   It assumes a linear relationship, while binary outcomes follow an S-shaped curve
+
+-   In reality, the relationship between predictors and the probability of an event occurring is often nonlinear. For example, small changes in a predictor might not have a substantial impact on the outcome probability when the predictor value is very high or very low, but could have a large impact in the middle range.
+
+The logistic function, or sigmoid function, addresses this by compressing the output to a range between 0 and 1, making it ideal for probability estimation.
+
+It transforms a linear combination of predictors through the following function:
+
+$$ p = \frac{1}{1 + e^{-z}} \text{, where } z = \beta_0 + \sum_{i=1}^n \beta_i x_i $$
+
+The logistic function, or sigmoid function, solves this by mapping any real number to (0, 1).
+
+## Interpreting Coefficients
+
+Coefficients in logistic regression represent the **change in the log-odds** of the outcome for a one-unit change in the predictor.
+
+To convert log-odds to probabilities:
+
+$$ p = \frac{e^{\beta_0 + \beta_1x_1}}{1 + e^{\beta_0 + \beta_1x_1}} $$
+
+## Load Packages
+
+Standard suspects: `lme4` and `tidyverse`. For today, we'll use some data Amber acquired/created and also the built-in `iris` data.
+
+```{r, echo = FALSE, message = FALSE}
+library(lme4)
+library(tidyverse)
+```
+
+# ismy.blue example
+
+Visit [ismy.blue](ismy.blue) and play the game. After you've got your outcome, let's talk about how your data is presented along the sigmoid curve.
+
+## Load Data
+
+Make sure you grab the data from GitHub first!
+
+```{r}
+colors <- read_csv("data/colors.csv")
+
+# make sure these are factors:
+colors$language <- as.factor(colors$language)
+colors$response_label <- as.factor(colors$response_label)
+colors$device <- as.factor(colors$device)
+
+summary(colors)
+
+```
+
+## EDA
+
+Explore the data a bit.
+
+```{r}
+# overall distribution of hue
+ggplot(colors, aes(x = hue)) +
+  geom_density(fill = "lightblue", alpha = 0.6) +
+  labs(title = "Hue Distribution", x = "Hue", y = "Density")
+
+# hue by response
+ggplot(colors, aes(x = hue, fill = response_label)) +
+  geom_density(alpha = 0.6, position = "identity") +
+  scale_fill_manual(values = c("blue" = "steelblue", "green" = "seagreen")) +
+  labs(title = "Hue Distribution by Response",
+       x = "Hue", y = "Density", fill = "Response")
+
+# scatterplot: hue vs. response (raw)
+ggplot(colors, aes(x = hue, y = response, color = response_label)) +
+  geom_point(height = 0.05, alpha = 0.5) + # use jitter rather than point
+  scale_color_manual(values = c("blue" = "steelblue", "green" = "seagreen")) +
+  labs(title = "Hue vs. Response", x = "Hue", y = "Response (0 = blue, 1 = green)", color = "Response")
+```
+
+Apply a logistic regression to predict the outcome of `response` with all predictors. Don't worry about interactions for now.
+
+```{r}
+m_bg <- glm(response_label ~ language + age + device + trial + hue, data = colors, family = binomial)
+summary(m_bg)
+```
+
+What can you interpret from this model output?
+
+## Where is R-squared?
+
+Note that we don't have R² values to look at here like we did with linear regression. What we doe have is *deviance*. Compare `Residual deviance` with `Null deviance` above and notice the large drop. A low number is good, and a large drop means that the predictors explain a lot compared to the null model (intercept-only model).
+
+### Pseudo R²
+
+You can also look at Pseudo R² values. *McFadden's R²* is the most common, and we calcualte it this way:
+
+`McFadden's = 1 - (Residual deviance / Null deviance)`
+
+Anything above \~0.2 is pretty good! So this looks like a great model. Note that Pseudo R² values are not directly comparable to linear regression R².
+
+```{r}
+1 - m_bg$deviance / m_bg$null.deviance # = 0.504
+```
+
+Lastly, there is `AIC`. We can't interpret this alone, but it is helpful for comparison.
+
+## Let's visualize the curve
+
+We'll start with a simpler model for demo purposes. Just run the whole code chunk!
+
+```{r}
+m_hue <- glm(response_label ~ hue, data = colors, family = binomial)
+summary(m_hue)
+
+data <- data.frame(hue = seq(150, 210, length.out = 200))
+data$prob_green <- predict(m_hue, newdata = data, type = "response")
+
+ggplot(colors, aes(x = hue, y = response, color = response_label)) +
+  geom_jitter(height = 0.05, alpha = 0.5) +
+  geom_line(data = data, aes(x = hue, y = prob_green),
+            color = "black", linewidth = 1, inherit.aes = FALSE) +
+  scale_color_manual(values = c("blue" = "steelblue", "green" = "seagreen")) +
+  labs(title = "Categorical Perception: Blue vs. Green",
+       x = "Hue", y = "P(green)",
+       color = "Response") +
+  theme_minimal()
+
+```
+
+Notice the point where P = 0.5. This is the implicit classification boundary if we use a 0.5 threshold.
+
+## `language` Effect
+
+This can be interesting because although everyone can *see* the same colors, we *name* colors differently across languages! Our data has observations from English and Japanese speakers.
+
+Run the whole chunk. Don't worry too much about the setup :)
+
+```{r, message = FALSE}
+data_lang <- expand.grid(
+  hue = seq(150, 210, length.out = 200),
+  language = c("English", "Japanese"),
+  age = mean(colors$age),
+  trial = mean(colors$trial),
+  device = c("iPhone", "Android", "Other"))
+
+data_lang$prob_green <- predict(m_bg, newdata = data_lang, type = "response")
+
+data_lang_avg <- data_lang %>%
+  group_by(hue, language) %>%
+  summarise(prob_green = mean(prob_green))
+
+ggplot(colors, aes(x = hue, y = response, color = response_label)) +
+  geom_jitter(height = 0.05, alpha = 0.3) +
+  geom_line(data = data_lang_avg, aes(x = hue, y = prob_green, color = language), linewidth = 1, inherit.aes = FALSE) +
+  scale_color_manual(values = c("blue" = "steelblue", "green" = "seagreen", "English" = "black", "Japanese" = "red")) +
+  labs(x = "Hue", y = "P(green)", title = "Language Effect (averaged over devices)") +
+  theme_minimal()
+```
+
+Compare this graph to the output of `m_bg`. Can you see how the `language` coefficient is reflected here?
+
+The coefficients are in log-odds units, but the graph shows probabilities — and the conversion between the two is nonlinear, so the same log-odds difference looks different depending on where you are on the curve.
+
+## Exponentiation
+
+One helpful way to interpret the log-odds is to exponentiate and get the odds ratio.
+
+*e*^-1.167^ ≈ 0.311, which means Japanese speakers have **0.311 times the odds** of responding "green" compared to English speakers at any given hue, holding other predictors constant. Or equivalently, their odds of saying green are about 69% lower.
+
+```{r}
+exp(-1.167)
+
+coef(m_bg)
+
+exp(coef(m_bg))
+```
+
+## `device` Effect
+
+Turns out that different devices display colors a bit differently. This could have impact on how people perceive and respond!
+
+Run the entire chunk
+
+```{r, message = FALSE}
+data_device <- expand.grid(
+  hue = seq(150, 210, length.out = 200),
+  language = c("English", "Japanese"),
+  age = mean(colors$age),
+  trial = mean(colors$trial),
+  device = c("Android", "iPhone", "Other"))
+
+data_device$prob_green <- predict(m_bg, newdata = data_device, type = "response")
+
+data_device_avg <- data_device %>%
+  group_by(hue, device) %>%
+  summarise(prob_green = mean(prob_green))
+
+ggplot(colors, aes(x = hue, y = response, color = response_label)) +
+  geom_jitter(height = 0.05, alpha = 0.3) +
+  geom_line(data = data_device_avg, aes(x = hue, y = prob_green, color = device), linewidth = 1, inherit.aes = FALSE) +
+  scale_color_manual(values = c("blue" = "steelblue", "green" = "seagreen", "iPhone" = "black", "Android" = "red", "Other" = "purple")) +
+  labs(x = "Hue", y = "P(green)", title = "Device Effect (averaged over languages)") +
+  theme_minimal()
+```
+
+Try to relate this back to the model output for `m_bg`.
+
+## Model comparison
+
+For practice, compare `m_bg` to `m_hue` using `anova`. These models are different by several degrees of freedom, but they are nested and you still can compare them. Where we looked at `RSS` for linear models, we look to `Res. Dev` (residual deviance) for comparison of logistic models (smaller is better).
+
+```{r}
+anova(m_bg, m_hue)
+```
+
+# Try with `iris`
+
+## Load `iris` Data
+
+```{r}
+iris <- iris
+skim_data <- skimr::skim(iris)
+View(skim_data)
+
+?iris
+```
+
+## Visualize first
+
+Explore the data visually.
+
+```{r}
+# point plot to see how Petal.Length and Species are related
+ggplot(iris, aes(x = Petal.Length, y = Species)) +
+  geom_jitter()
+
+```
+
+## Apply your model
+
+Apply logistic regression and create a new plot. We'll work with only a subset of data for now.
+
+```{r}
+# filter to focus on two species for now: versicolor and virginica
+iris_subset <- subset(iris, Species %in% c("versicolor", "virginica"))
+
+# OPTIONAL: transform to 0s and 1s
+iris_subset$Species_num <- ifelse(iris_subset$Species == "versicolor", 0, 1)
+
+# logistic regression model predicting species based on petal length
+iris_model <- glm(Species_num ~ Petal.Length, data = iris_subset, family = binomial)
+summary(iris_model)
+
+# fabricate a sequence of Petal.Length values for predictions
+data <- data.frame(Petal.Length = seq(min(iris_subset$Petal.Length), max(iris_subset$Petal.Length), length.out = 100))
+
+# predict probabilities
+data$Probability <- predict(iris_model, newdata = data, type = "response")
+
+# Plot the data and the sigmoid curve
+ggplot(iris_subset, aes(x = Petal.Length, y = Species_num, color = Species)) +
+  geom_jitter(height = 0.1, width = 0.1) + 
+  geom_line(data = data, aes(x = Petal.Length, y = Probability), color = "black") +
+  scale_y_continuous(breaks = c(0, 1), labels = c("Versicolor", "Virginica")) +
+  labs(title = "Logistic Regression: Versicolor vs. Virginica", x = "Petal Length", y = "Species") +
+  theme_minimal()
+```
+
+Interpretation of `iris_model`: (Remember we coded `versicolor` = 0 and `virginica` = 1)
+
+-   **(Intercept)**: -43.781
+
+    -   This is the log-odds of being classified as "virginica" when petal length is zero
+    -   This value is not practically meaningful as petal lengths in the dataset are positive
+
+-   **`Petal.Length`**: 9.002
+
+    -   For each one-unit increase in petal length, the log-odds of a flower being classified as "virginica" (rather than "versicolor") significantly increases
+
+    -   Since the coefficient is positive, it suggests that as petal length increases, the log-odds of being classified as "virginica" significantly increases, compared to "versicolor"
+
+        -   To interpret it in terms of odds, you can exponentiate the coefficient:
+
+            Odds Ratio = e^9.002^ ≈ 8,119.306
+
+        -   This means that for each additional centimeter of petal length, the odds of a flower being classified as "virginica" rather than "versicolor" increase by a factor of approximately 8119, indicating a very strong relationship.
+
+# Practice on your own
+
+## Apply your own logistic regression to `iris`
+
+Edit the below to predict `Species` status based a predictor of your choice. You will need to subset your data (or just use `iris_subset` from above).
+
+```{r}
+flower <- glm(Species_num ~ ?, data = iris_subset, family = binomial)
+summary(flower)
+```
+
+Interpretation of Estimate coefficients:
+
+-   **(Intercept)**: ??
+
+    -   This is the log-odds of \_\_\_\_\_.
+
+-   **your predictor**: ??
+
+    -   This coefficient represents\_\_\_\_.
+
+## Try a new data set! `citrus`
+
+This data was created by Amber. You can use it to classify `fruit` as either grapefruit or orange using `diameter`, `weight`, or various color values as predictors.
+
+```{r}
+citrus <- read_csv("data/citrus.csv")
+
+citrus$fruit <- as.factor(citrus$fruit)
+
+head(citrus)
+
+citrus %>% 
+  group_by(fruit) %>%
+  summarise(mean_diameter = mean(diameter),
+            mean_weight = mean(weight),
+            mean_hue = mean(hue))
+
+# do some EDA :)
+
+
+# build a model
+fruit <- glm(fruit ~ ?, data = citrus, family = binomial)
+summary(fruit)
+```
+
+Interpretation of Estimate coefficients:
+
+-   **(Intercept)**: ??
+
+    -   This is the log-odds of \_\_\_\_\_.
+
+-   **your predictor**: ??
+
+    -   This coefficient represents\_\_\_\_.
