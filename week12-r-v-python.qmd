@@ -1,0 +1,234 @@
+---
+title: "R vs. Python, and Where Does 'ML' Actually Begin?"
+subtitle: "DS-303 | Discussion Day"
+date: 4/1/26
+author: "Amber Camp"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    theme: cosmo
+    highlight-style: github
+    code-fold: true
+    df-print: paged
+execute:
+  eval: false
+  echo: true
+---
+
+## Welcome
+
+Today is intentionally a discussion day. We're going to pause and look at the landscape of what we've been doing and why it matters.
+
+Two big questions for today:
+
+1.  **R or Python...does it actually matter?**
+2.  **What's the difference between the regression models we've been building and "machine learning"?**
+
+## Part 1: R vs. Python
+
+### Warm-Up
+
+> When someone says they are a data scientist, what language do you picture them using? Why?
+
+### The Origin Story
+
+These two languages were built by different communities, for different purposes, and that has trickled down to shape everything about them. They both evolved from different needs.
+
+|   | **R** | **Python** |
+|------------------------|------------------------|------------------------|
+| Created by | Statisticians (Ross Ihaka & Robert Gentleman, 1993) | A programmer (Guido van Rossum, 1991) |
+| Original purpose | Statistical computing and graphics | General-purpose scripting |
+| Mental model | *"I have data, I want to analyze it"* | *"I have a problem, I want to build something"* |
+| Core strength | Statistical modeling, visualization, research | ML pipelines, production code, flexibility |
+
+### Where Each Shines
+
+**R is still king (I think!) for:**
+
+-   Mixed effects models (what we've been doing. `lme4` is unmatched)
+-   Psychometrics, survival analysis, econometrics
+-   Reproducible research (R Markdown / Quarto)
+-   Elegant data visualization (`ggplot2`)
+-   Academic statistics
+
+**Python dominates in:**
+
+-   Machine learning and deep learning (`scikit-learn`, `PyTorch`, `TensorFlow`)
+-   Production pipelines and deployment
+-   Web scraping, APIs, automation
+-   Industry data engineering
+-   Anything that needs to talk to the rest of a software system
+
+### Same Model, Different Language
+
+We fit this model in R recently:
+
+``` r
+library(lmerTest) # if you want p-values--automatically loads lme4
+
+model <- lmer(Reaction ~ Days + (Days | Subject), data = sleepstudy)
+summary(model)
+```
+
+```{r}
+library(lmerTest) 
+
+model <- lmer(Reaction ~ Days + (Days | Subject), data = sleepstudy)
+summary(model)
+```
+
+Here's the equivalent in Python:
+
+``` python
+import statsmodels.formula.api as smf
+
+model = smf.mixedlm("Reaction ~ Days", sleepstudy, 
+                     groups=sleepstudy["Subject"],
+                     re_formula="~Days")
+result = model.fit()
+print(result.summary())
+```
+
+```{r echo=FALSE}
+reticulate::py_require("statsmodels")
+```
+
+```{python}
+import statsmodels.formula.api as smf
+
+sleepstudy = r.sleepstudy # you only need this to define your data
+
+model = smf.mixedlm("Reaction ~ Days", sleepstudy,
+                     groups=sleepstudy["Subject"],
+                     re_formula="~Days")
+result = model.fit()
+print(result.summary())
+
+```
+
+> What do you notice about the syntax differences? What feels more natural to you, and why might that be?
+
+The output is essentially the same. The ecosystem around each is what's different. NOTE: The actual math underlying each is very similar, but not exactly the same!
+
+### The Real Question Underneath
+
+When people ask "R or Python?" they usually mean:
+
+> *"Which one should I learn to get a job?"*
+
+Honest answer:
+
+-   **For industry ML/AI roles:** Python, strongly
+-   **For research, academia, or statistics-heavy roles:** R is very relevant, Python increasingly present
+-   **For most working data scientists:** Both. [Bilingualism is rare and valuable]{.underline}.
+
+You've been learning both in this program. That's intentional!
+
+### Quick Discussion
+
+> -   Which language do you feel more confident in right now?
+> -   Which do you *want* to get better at, and why?
+> -   Is there a specific thing you've wanted to do that you weren't sure which language to use for?
+
+## Part 2: Predictive Modeling vs. Machine Learning
+
+### Is there even a difference?
+
+This is genuinely contested. But the distinction is useful for thinking about [*what you're trying to do.*]{.underline}
+
+This course is called "Modeling for Prediction", but prediction here means using models to make inferences and forecasts, not necessarily maximizing accuracy the way ML does. Regression models predict too–the question is whether we also care about the *why*.
+
+### The Core Question
+
+> Are you trying to *explain* something, or *predict* something?
+
+This single question determines a lot about which tools, which models, and which metrics matter.
+
+|   | **Statistical / Predictive Modeling** | **Machine Learning** |
+|------------------------|------------------------|------------------------|
+| Primary goal | Understand relationships, explain variance | Maximize predictive accuracy |
+| Interpretability | High priority | Often secondary |
+| Assumptions | Many (linearity, normality, etc.) | Fewer, or none |
+| Typical output | Coefficients, *p*-values, effect sizes | Predictions, class probabilities |
+| Example models | Linear regression, logistic regression, etc. | Random forest, gradient boosting, neural nets |
+| Evaluation focus | Model fit, hypothesis tests | Cross-validation, held-out test accuracy |
+
+### Where We've Been
+
+Everything we've done in DS-303 has been on the [**explain**]{.underline} side of this spectrum:
+
+-   **Linear regression** → What is the relationship between X and Y?
+-   **Logistic regression** → What predicts the probability of this outcome?
+-   **Mixed effects models** → How do relationships vary across groups?
+
+In every case, we cared about *coefficients*: their direction, magnitude, significance. The emphasis in this class has been to *understand* the data.
+
+### Where ML Lives
+
+Machine learning typically asks: *given inputs, what's the best prediction of the output?*
+
+A random forest, for example:
+
+-   Builds hundreds of decision trees on random subsets of data
+-   Aggregates their predictions
+-   Produces excellent predictions but is very hard to interpret (the "black box")
+
+You can ask a linear model: *"What's the effect of one additional day of sleep deprivation on reaction time?"* and get a meaningful answer.
+
+You cannot easily ask a random forest that question.
+
+### The Spectrum
+
+This difference is not binary, it's a continuum:
+
+```         
+EXPLAIN ←————————————————————————————→ PREDICT
+
+Linear     Logistic    Mixed     Ridge/    Random    Gradient   Neural
+Regression Regression  Effects   LASSO     Forest    Boosting   Networks
+
+↑                                         ↑
+"What's the effect of X?"         "What will Y be?"
+```
+
+Some models (like Ridge/LASSO) sit in the middle. They add regularization to regression to improve prediction, at the cost of some interpretability.
+
+Think about a research question you care about: something from your capstone, a personal interest, or a job you'd want. Is that question more "explain" or "predict"? How would that change what model you'd use?
+
+### The Practical Overlap
+
+In reality, these worlds bleed into each other:
+
+-   ML practitioners use statistics to evaluate models
+-   Statisticians use ML techniques to improve predictions
+-   SHAP values and other interpretability tools are trying to bring "explain" logic back into ML
+
+The distinction matters most when you're *designing a study or analysis*, before you've chosen a model. Once you know what you're trying to do, the right tools often become clearer.
+
+## Putting It Together
+
+| You want to... | Use... | Language |
+|------------------------|------------------------|------------------------|
+| Understand what predicts an outcome | Regression, LME | R or Python |
+| Build the most accurate predictor | Random forest, boosting | Python (or R!) |
+| Explain AND predict | Interpretable ML (LASSO, SHAP) | Python |
+| Publish statistical findings | LME, GLM | R |
+| Deploy a model in production | Almost anything | Python |
+
+### A Minimal Pair
+
+One of these questions calls for an *explanatory* model and one calls for an ML approach. Which is which, and how do you know?
+
+1.  Which patient characteristics (age, BMI, blood pressure) are associated with increased risk of diabetes, and how much does each factor contribute?
+2.  Given a patient's characteristics, can we accurately predict whether they will develop diabetes?
+
+## Where We're Going
+
+Next week we'll bring in a new dataset and start applying some of these ideas in context (working in R). We'll be asking: what kind of question is this? before we ever open a model.
+
+## Reflection (before you leave)
+
+1.  What's one thing that clicked for you today about R vs. Python?
+2.  How would you explain the difference between regression and ML to someone outside this class?
+3.  What question do *you* want to answer with data, and is it an "explain" or "predict" question?
