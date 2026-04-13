@@ -36,7 +36,7 @@ Two big questions for today:
 These two languages were built by different communities, for different purposes, and that has trickled down to shape everything about them. They both evolved from different needs.
 
 |   | **R** | **Python** |
-|------------------------|------------------------|------------------------|
+|----|----|----|
 | Created by | Statisticians (Ross Ihaka & Robert Gentleman, 1993) | A programmer (Guido van Rossum, 1991) |
 | Original purpose | Statistical computing and graphics | General-purpose scripting |
 | Mental model | *"I have data, I want to analyze it"* | *"I have a problem, I want to build something"* |
@@ -105,6 +105,8 @@ model = smf.mixedlm("Reaction ~ Days", sleepstudy,
 result = model.fit()
 print(result.summary())
 
+print(result.aic())
+
 ```
 
 > What do you notice about the syntax differences? What feels more natural to you, and why might that be?
@@ -146,7 +148,7 @@ This course is called "Modeling for Prediction", but prediction here means using
 This single question determines a lot about which tools, which models, and which metrics matter.
 
 |   | **Statistical / Predictive Modeling** | **Machine Learning** |
-|------------------------|------------------------|------------------------|
+|----|----|----|
 | Primary goal | Understand relationships, explain variance | Maximize predictive accuracy |
 | Interpretability | High priority | Often secondary |
 | Assumptions | Many (linearity, normality, etc.) | Fewer, or none |
@@ -209,7 +211,7 @@ The distinction matters most when you're *designing a study or analysis*, before
 ## Putting It Together
 
 | You want to... | Use... | Language |
-|------------------------|------------------------|------------------------|
+|----|----|----|
 | Understand what predicts an outcome | Regression, LME | R or Python |
 | Build the most accurate predictor | Random forest, boosting | Python (or R!) |
 | Explain AND predict | Interpretable ML (LASSO, SHAP) | Python |
