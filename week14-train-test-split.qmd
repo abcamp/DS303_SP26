@@ -1,0 +1,236 @@
+---
+title: "Train/Test Split: Predictive Model Evaluation"
+author: 
+  - "Student Name"
+  - "DS303, SP26"
+  - "Prof. Amber Camp"
+date: 4/13/26
+format: html
+editor: visual
+theme: spacelab
+---
+
+## Goal
+
+We're shifting from *explaining predictive relationships* to *evaluating predictive performance*.
+
+We'll explore how a train/test split helps us assess how well our model performs on **new, unseen data**, which is the actual test of whether a model is useful in the real world.
+
+By the end of this class, you should be able to:
+
+-   Create a train/test split
+-   Fit models on training data
+-   Evaluate their performance on unseen test data
+-   Recognize signs of overfitting
+
+```{r setup}
+
+# install.packages("caret")
+# install.packages("Metrics")
+library(tidyverse)
+library(caret)   # for splitting data and model training
+library(Metrics) # for computing RMSE and other evaluation metrics
+
+set.seed(42)     # sets a random seed so our results are reproducible
+```
+
+## The Data
+
+We'll use the built-in `mtcars` dataset to predict `mpg` (miles per gallon). I know. We are running out of clean datasets....
+
+```{r peek-at-data}
+
+glimpse(mtcars)
+head(mtcars)
+```
+
+`mtcars` has 32 rows... small, but enough for now so that we can explore the logic.
+
+## Step 1: Create a Train/Test Split
+
+We'll randomly split the data: **80% training, 20% test**.
+
+```{r train-test-split}
+
+train_index <- createDataPartition(mtcars$mpg, p = 0.8, list = FALSE)
+train_data  <- mtcars[train_index, ]
+test_data   <- mtcars[-train_index, ]
+
+cat("Training rows:", nrow(train_data), "\n")
+cat("Test rows:    ", nrow(test_data), "\n")
+```
+
+**Syntax notes:**
+
+-   `createDataPartition()` tries to preserve the distribution of `mpg` across both sets as a *stratified* split. This matters more with small datasets and categorical outcomes, and it's a good habit.
+-   `mtcars$mpg` is the outcome variable we want to predict.
+-   `p = 0.8` puts 80% of rows into the training set.
+-   `list = FALSE` returns a plain vector of row indices instead of a list, which is easier to use for subsetting.
+
+::: callout-note
+## Why split at all?
+
+A model is always *optimized* on its training data. The fitting process adjusts parameters to minimize error on that specific data. That optimization process can introduce bias toward the training set, so training performance tends to be overly optimistic.
+
+The test set gives you an honest, unbiased estimate of how the model performs on new, unseen data
+:::
+
+## Step 2: Fit Two Models on the Training Set
+
+-   A **simple model**: just `wt` (weight)
+-   A **complex model**: several predictors
+
+```{r fit-models}
+
+model_simple  <- lm(mpg ~ wt, data = train_data)
+model_complex <- lm(mpg ~ wt + hp + disp + qsec, data = train_data)
+
+summary(model_simple)
+summary(model_complex)
+```
+
+Look at both model summaries. Which has the higher Adjusted R² on the training set? Does that automatically make it the better model for prediction?
+
+-   **Multiple R²**: how much variance in `mpg` the model explains
+-   **Adjusted R²**: penalizes models for having more predictors and is a fairer comparison across models of different complexity
+
+A higher R² on training data looks good, but it can be misleading. A model can memorize the training data without actually learning anything that is generalizable. This is called \_\_\_\_\_\_\_.
+
+## Step 3: Predict on the Test Set
+
+Now let's see how each model performs on data it has **never seen**. This is the test!
+
+```{r test-predictions}
+
+pred_simple  <- predict(model_simple, test_data)
+pred_complex <- predict(model_complex, test_data)
+
+rmse(test_data$mpg, pred_simple)
+rmse(test_data$mpg, pred_complex)
+```
+
+```{r rmse-manual-calc}
+
+# If Metrics library isn't working, here's the manual calculation:
+rmse_manual <- function(actual, predicted) {sqrt(mean((actual - predicted)^2))}
+
+rmse_manual(test_data$mpg, pred_simple)
+rmse_manual(test_data$mpg, pred_complex)
+```
+
+Which model had the lower RMSE on the test set? Is it the same model that looked better on training?
+
+**RMSE (Root Mean Squared Error)** measures how far off predictions are, in the same units as the outcome variable. [Lower is better]{.underline}.
+
+## Step 4: Compare Train and Test RMSE
+
+Let's look at training RMSE alongside test RMSE for both models.
+
+```{r compare-rmse}
+
+# training RMSE
+cat("--- Training RMSE ---\n")
+cat("Simple: ",  round(rmse(train_data$mpg, predict(model_simple,  train_data)), 3), "\n")
+cat("Complex:", round(rmse(train_data$mpg, predict(model_complex, train_data)), 3), "\n\n")
+
+# test RMSE
+cat("--- Test RMSE ---\n")
+cat("Simple: ",  round(rmse(test_data$mpg, pred_simple),  3), "\n")
+cat("Complex:", round(rmse(test_data$mpg, pred_complex), 3), "\n")
+```
+
+**Questions to consider:**
+
+-   Does the complex model perform much better on training but worse on test? This would be a classic overfitting pattern.
+-   Or does the complex model do better on *both*? Then the added predictors are genuinely contributing.
+
+::: callout-important
+## What we're looking for
+
+-   **Low RMSE on the test set**: the model predicts well on new data
+-   **Small gap between training and test RMSE**: the model generalizes, not just memorizes
+
+A model with great training performance but poor test performance is [overfit]{.underline}, and that makes it *bad* for prediction, regardless of how impressive R² looks on paper!!
+:::
+
+## Interpretation
+
+Results will vary depending on the random split, but here's the general pattern to watch for:
+
+-   If the **complex model wins on both** training and test: the extra predictors are genuinely useful. This is not overfitting.
+-   If the **complex model wins on training but loses on test**: classic overfitting. The model learned noise in the training data.
+-   If the **simple model wins on test**: simpler is sometimes better, especially with small datasets.
+
+::: callout-note
+## A note on *p*-values
+
+You may notice that some predictors in `model_complex` aren't individually significant. That's okay! In this type of predictive modeling, the goal is minimizing prediction error, not explaining individual effects. Even predictors that aren't significant on their own can contribute jointly to better predictions. This is one key difference between *explanatory* and *predictive* modeling.
+:::
+
+## In Summary
+
+A good model performs well on **both** the training set and the test set.
+
+|               | Good model | Overfit model |
+|---------------|------------|---------------|
+| Training RMSE | Low        | Very low      |
+| Test RMSE     | Low        | High          |
+| Gap           | Small      | Large         |
+
+# Try It Yourself: Modeling with `diamonds`
+
+Now apply the same workflow to a new dataset: `diamonds`
+
+**Your task:**
+
+1.  Create an 80/20 train/test split
+2.  Fit at least one simple and one complex model predicting `price`
+3.  Compare RMSE on both training and test sets
+4.  Reflect: did your more complex model generalize well?
+
+**Bonus:**
+
+-   What happens when you include categorical predictors like `cut`, `color`, or `clarity`?
+-   Does log-transforming `price` improve things? (Hint: `log(price)` remember to back-transform if computing RMSE)
+
+### Step 1: Split
+
+```{r diamonds-split}
+
+```
+
+### Step 2: Fit Models
+
+```{r diamonds-models}
+
+```
+
+### Step 3: Predict on Test Set
+
+```{r diamonds-test}
+
+```
+
+### Step 4: Compare RMSE
+
+```{r diamonds-compare}
+
+```
+
+Which model is better, and why?
+
+# Footnote: Two Ways to Split
+
+`createDataPartition()` (used above) gives an approximately stratified sample. It tries to preserve the distribution of the outcome variable. This is the preferred approach.
+
+If you want a simpler split that gives *exactly* the proportion you specify but without stratification, you can use `sample()`:
+
+```{r simple-split-example}
+
+set.seed(42)
+train_index <- sample(1:nrow(mtcars), size = floor(0.8 * nrow(mtcars)))
+train_data  <- mtcars[train_index, ]
+test_data   <- mtcars[-train_index, ]
+```
+
+You'll see this approach used in other contexts (like our decision trees lesson later this week). Both are valid, but it is helpful know the tradeoff.
