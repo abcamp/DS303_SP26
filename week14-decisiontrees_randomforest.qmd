@@ -1,0 +1,284 @@
+---
+title: "Decision Trees and Random Forest"
+author: 
+  - "Student Name"
+  - "DS303, SP26"
+  - "Prof. Amber Camp"
+date: 4/13/26
+format: html
+editor: visual
+theme: spacelab
+---
+
+## Where We Are
+
+All semester, we've been working along a spectrum:
+
+> **EXPLAIN ←————————————————————→ PREDICT**
+>
+> Linear Regression → Logistic Regression → Mixed Effects → **Decision Trees → Random Forest**
+
+Regression models are powerful because they're *interpretable*: we can say "for every one-unit increase in X, Y changes by β." But they make assumptions: linearity, normality of residuals, independence.
+
+Today we move toward the **predict** end of the spectrum. Decision trees and random forests make *fewer* assumptions about the shape of the data, handle nonlinear relationships naturally, and often produce excellent predictions. The tradeoff: they're harder to interpret. This is not a bug, and it can be a useful design choice you make deliberately.
+
+## Part 1: Decision Trees
+
+### The Core Idea
+
+A decision tree asks a sequence of yes/no questions about your predictors, splitting the data at each step to reduce error. It looks like a flowchart. Each split is chosen to make the resulting groups as *pure* (homogeneous) as possible.
+
+For classification: we want splits that put mostly one class in each group.\
+For regression: we want splits that minimize variance within each group.
+
+The tree keeps splitting until it hits a stopping rule (minimum node size, maximum depth, etc.).
+
+### Packages
+
+We'll use two new packages today:
+
+-   `rpart`: builds decision trees (regression and classification)
+-   `rpart.plot`: visualizes them cleanly
+-   `randomForest`: builds random forests
+
+```{r setup}
+
+# install.packages(c("rpart", "rpart.plot", "randomForest")) # install as needed
+
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+library(tidyverse) # we will used ggplot2 and dplyr mostly today
+```
+
+### Dataset: iris
+
+We'll use the built-in `iris` dataset: 150 flowers, 4 measurements, 3 species. It's a classic classification problem.
+
+```{r iris-data}
+
+glimpse(iris)
+head(iris)
+```
+
+**Goal today:** predict `Species` from petal and sepal measurements.
+
+### Train/Test Split
+
+Before building any model, we split into training (70%) and test (30%) sets. This is critical so that we can evaluate on data the model has *never seen*
+
+```{r train-test-split}
+
+set.seed(42)
+
+n <- nrow(iris)
+train_idx <- sample(1:n, size = floor(0.7 * n))
+
+train <- iris[train_idx, ]
+test  <- iris[-train_idx, ]
+```
+
+### Build the Tree
+
+```{r build-tree}
+
+tree_model <- rpart(
+  Species ~ .,        # predict Species from all other variables
+  data = train,
+  method = "class")    # use "class" for classification, "anova" for regression
+
+
+```
+
+### Visualize the Tree
+
+```{r plot-tree}
+#| fig-width: 8
+#| fig-height: 5
+
+rpart.plot(
+  tree_model,
+  type = 4,
+  extra = 104,         # show class probabilities and % of observations
+  fallen.leaves = TRUE,
+  main = "Decision Tree: Iris Species")
+
+```
+
+How to read this: Each node shows the predicted class, the class probabilities, and the percentage of observations in that node. Follow the branches based on the condition at each split
+
+::: callout-note
+## What's is the model doing?
+
+Notice that it splits first on `Petal.Length`. This is the variable that most cleanly separates the species. The tree found this automatically! We didn't tell it which predictor to use first.
+:::
+
+### Evaluate on Test Data
+
+```{r tree-predictions}
+
+tree_preds <- predict(tree_model, newdata = test, type = "class")
+
+# confusion matrix
+confusion <- table(Predicted = tree_preds, Actual = test$Species)
+confusion
+
+# accuracy
+accuracy <- sum(diag(confusion)) / sum(confusion)
+cat("Test Accuracy:", round(accuracy, 3), "\n")
+```
+
+Interpretation**:** The diagonal of the confusion matrix shows correct predictions. Off-diagonal entries are misclassifications.
+
+## Part 2: The Problem with One Tree
+
+Decision trees have a well-known weakness: **high variance**. Change your training data slightly and you can get a very different tree. This makes single trees somewhat unstable
+
+The solution? Don't use one tree. Use *hundreds* of them.
+
+This is the intuition behind [**bagging**]{.underline} (Bootstrap AGGregating):
+
+1.  Take many bootstrap samples of your training data (sample *with replacement*)
+2.  Train a tree on each sample
+3.  Average (or vote on) their predictions
+
+Bagging reduces variance significantly. Random forest takes this one step further
+
+## Part 3: Random Forests
+
+### The Main Difference
+
+Random forests add one more trick on top of bagging: **random feature selection at each split!**
+
+When building each tree, at every split the model only considers a *random subset* of predictors, not all of them. This forces diversity among the trees, so they don't all end up looking similar (which would defeat the purpose of averaging)
+
+The result: a collection of de-correlated trees whose aggregate predictions are much more stable and accurate than any single tree.
+
+### The (simplified) Algorithm
+
+```         
+for i in 1 to n_trees:
+    1. Draw a bootstrap sample from the training data
+    2. Grow a tree:
+       - At each split, consider only m_try random features
+       - Pick the best split among those m_try features
+       - Split the node
+       - Repeat until stopping rule
+    3. Add tree to the forest
+
+Final prediction: majority vote (classification) or average (regression)
+```
+
+The key parameter: **`mtry`**
+
+-   how many features to consider at each split
+
+-   Classification default: `√p` (where p = number of features) - Regression default: `p/3`
+
+### Build the Random Forest
+
+```{r build-rf}
+
+set.seed(42)
+
+rf_model <- randomForest(
+  Species ~ .,
+  data = train,
+  ntree = 50,       # number of trees (more = more stable, slower)
+  mtry = 2,         # features considered at each split (default for classing: sqrt(4) ≈ 2)
+  importance = TRUE)  # compute variable importance
+
+rf_model
+```
+
+::: callout-note
+## OOB Error
+
+The **Out-Of-Bag (OOB) error** is a built-in estimate of test error. Because each tree is trained on a bootstrap sample (\~63% of the data), the remaining \~37% can be used to evaluate it "for free", without a separate validation set. This is one of the practical advantages of random forests :)
+:::
+
+### Error Rate by Number of Trees
+
+```{r rf-error-plot}
+#| fig-width: 7
+#| fig-height: 4
+
+plot(rf_model, main = "OOB Error Rate by Number of Trees")
+legend("topright",legend = colnames(rf_model$err.rate), col = 1:4, lty = 1, cex = 0.8)
+```
+
+The error rate stabilizes after a few hundred trees. Adding more trees beyond that gives diminishing returns.
+
+### Evaluate on Test Data
+
+```{r rf-predictions}
+
+rf_preds <- predict(rf_model, newdata = test)
+
+rf_confusion <- table(Predicted = rf_preds, Actual = test$Species)
+rf_confusion
+
+rf_accuracy <- sum(diag(rf_confusion)) / sum(rf_confusion)
+cat("Random Forest Test Accuracy:", round(rf_accuracy, 3), "\n")
+```
+
+### Compare: Single Tree vs. Random Forest
+
+```{r compare}
+
+cat("Single Decision Tree Accuracy: ", round(accuracy, 3), "\n")
+cat("Random Forest Accuracy:        ", round(rf_accuracy, 3), "\n")
+```
+
+The random forest will typically match or exceed the single tree, especially on noisier data. On a clean dataset like `iris`, the difference may be small or negligble. That's to be expected for this "teaching" data
+
+## Part 4: Variable Importance
+
+One way to partially "look inside" a random forest is **variable importance**. Which features did the model rely on most?
+
+```{r variable-importance}
+#| fig-width: 7
+#| fig-height: 4
+
+varImpPlot(
+  rf_model,
+  main = "Variable Importance: Iris Random Forest",
+  type = 1)  # Mean Decrease in Accuracy (permutation-based)
+
+```
+
+Mean Decrease in Accuracy: For each variable, the model randomly shuffles that variable's values and measures how much prediction accuracy drops. A large drop = that variable matters a lot
+
+::: callout-note
+## This is not the same as a regression coefficient!
+
+A coefficient tells you *direction* and *magnitude* of an effect. Variable importance tells you *how much the model relies on that variable*. You can't say "for every 1 cm increase in `Petal.Length`, the probability of `setosa` increases by X." We gave up that interpretive power :(
+:::
+
+## Summary: When to Use What
+
+| Situation | Reach for... |
+|------------------------------------|------------------------------------|
+| You need to explain *why* X affects Y | Regression (linear, logistic, mixed) |
+| You need the best possible prediction | Random forest |
+| Your data has nonlinear relationships | Random forest |
+| You need to publish statistical findings | Regression |
+| You have a small dataset | Be cautious with random forest |
+| You want to know which variables matter | Both work (different methods) |
+
+## Things to think about
+
+Before you leave, think about a dataset you care about:
+
+1.  Is your research question more "explain" or "predict"?
+2.  Would a decision tree or random forest be appropriate? Why or why not?
+3.  What would you *lose* by using a random forest instead of logistic regression on your data?
+
+## Going Further (Optional)
+
+If you want to go deeper on your own or for future projects:
+
+-   `ranger` package: a faster C++ implementation of random forests, preferred for larger datasets
+-   Gradient boosting (XGBoost, lightGBM): another ensemble method, often even more accurate
+-   SHAP values: a technique for interpreting black-box models by measuring each feature's contribution to individual predictions
+-   `tidymodels`: a modern R framework for machine learning workflows that works with many model types (Amber doesn't use this, finds it cumbersome, but maybe you'll like it!)
