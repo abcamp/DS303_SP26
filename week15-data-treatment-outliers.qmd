@@ -40,8 +40,8 @@ Outliers can:
 
 There are several approaches:
 
-1.  **Remove them** (what we'll practice today)
-2.  **Transform them** (replacement, log transformation, , z-scores, winsorization, etc.)
+1.  **Remove them** (what we'll practice today, ex. z-scores)
+2.  **Transform them** (replacement, log transformation, winsorization, etc.)
 3.  **Use robust methods** (models that are less sensitive to outliers)
 4.  **Investigate them** (sometimes outliers are your most interesting data!)
 
@@ -78,12 +78,12 @@ Quick reminder about this dataset:
 Look at the data before doing anything to it. We'll plot reaction time over days, with a separate line for each subject.
 
 ```{r}
-ggplot(sleepstudy, aes(x = Days, y = Reaction, color = Subject)) +
+ggplotly(ggplot(sleepstudy, aes(x = Days, y = Reaction, color = Subject)) +
   geom_line(alpha = 0.5) +
   geom_point() +
   theme_minimal() +
   labs(title = "Reaction Time by Days of Sleep Deprivation",
-       subtitle = "Each line represents one subject")
+       subtitle = "Each line represents one subject"))
 ```
 
 Look closely at this plot. Do you see any points that seem unusual? Any subjects with weird patterns?
@@ -219,7 +219,8 @@ summary(m1)
 summary(m2)
 
 # compare AIC below
-
+AIC(m1)
+AIC(m2)
 ```
 
 -   How did the coefficients change?
@@ -233,12 +234,45 @@ What happens if we use a different threshold? Let's try ±2.5 SD:
 
 ```{r}
 sleepstudy_clean2 <- sleepstudy_z %>%
-  filter(abs(Reaction_z) <= 2.5)
+  filter(abs(Reaction_z) <= 1.5)
 
 # how much data did we lose?
 n_original <- nrow(sleepstudy)
-n_clean <- nrow(sleepstudy_clean)
+n_clean <- nrow(sleepstudy_clean2)
 n_removed <- n_original - n_clean
+
+# model with original data
+m3 <- lmer(Reaction ~ Days + (Days | Subject), data = sleepstudy)
+
+# model with cleaned data
+m4 <- lmer(Reaction ~ Days + (Days | Subject), data = sleepstudy_clean2)
+
+summary(m3)
+
+summary(m4)
+
+# compare AIC below
+AIC(m3)
+AIC(m4)
+```
+
+```{r}
+# compare side by side using patchwork
+p3 <- ggplot(sleepstudy, aes(x = Days, y = Reaction, group = Subject)) +
+  geom_line(alpha = 0.5) +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Original Data",
+       subtitle = paste(n_original, "observations"))
+
+p4 <- ggplot(sleepstudy_clean2, aes(x = Days, y = Reaction, group = Subject)) +
+  geom_line(alpha = 0.5) +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Cleaned Data (1.5 SD)",
+       subtitle = paste(n_clean, "observations"))
+
+p3 + p4
 ```
 
 There's no single "correct" threshold. Your choice depends on:
@@ -250,11 +284,11 @@ There's no single "correct" threshold. Your choice depends on:
 
 [The key is to justify and document your choice!]{.underline}
 
-## Now it's your turn: Your vowel data!
+## Now it's your turn: Your data!
 
 Now you're going to apply these same techniques to your own data.
 
-### Load your vowel data
+### Load your data
 
 ```{r}
 
