@@ -15,7 +15,7 @@ theme: spacelab
 
 Today we're going to talk about outliers: what they are, where they come from, and how to handle them responsibly. This is a critical skill for any data scientist, because outliers can dramatically affect your models and conclusions.
 
-We'll practice with the `sleepstudy` dataset (which we've already used!), and then you'll have time to apply these same techniques to your own vowel data.
+We'll practice with the `sleepstudy` dataset (which we've already used!), and then you'll have time to apply these same techniques to your own data.
 
 ## What are outliers?
 
